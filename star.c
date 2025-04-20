@@ -1,57 +1,62 @@
 #include "star.h"
-//#include<stdio.h>
-void Getcwd(char *buf[1024], size_t size)
-    {
-      if(NULL == getcwd(buf, size))
+
+char **line_splitting(char *line) {
+    char **tokens;
+    unsigned int position = 0;
+    size_t bufsize = BUFSIZ;
+    
+    tokens = Malloc(bufsize * sizeof(char*));
+    for (char *token = strtok(line, DEL); token; token = strtok(NULL, DEL)) {
+        tokens[position++] = token;
+        if (position >= bufsize) {
+            bufsize *= 2;
+            tokens = Realloc(tokens, bufsize * sizeof(char*));
+        }
+    }
+    tokens[position] = NULL;
+    return tokens;
+}
+
+void Getcwd(char *buf, size_t size) {
+    if (NULL == getcwd(buf, size))
         perror("getcwd failed");
-      }
+}
 
-char *read_line(void)
-    {
-          char *buf;
-          ssize_t bufsize;
-          char *cwd[1024];
+char *read_line(void) {
+    char *buf = NULL;
+    size_t bufsize = 0; // getline will allocate as needed
+    char cwd[PATH_MAX];
+    
+    Getcwd(cwd, sizeof(cwd));
+    printf(BLUE" %s "RST WHITE"*> "RST, cwd);
+    
+    if (getline(&buf, &bufsize, stdin) == -1) {
+        free(buf);
+        if (feof(stdin)) {
+            printf(RED"[EOF]\n"RST);
+            exit(EXIT_SUCCESS);
+        }
+        perror(RED"Getline failed"RST);
+        exit(EXIT_FAILURE);
+    }
+    return buf;
+}
 
-          buf = NULL;
-
-          Getcwd(cwd, sizeof(cwd));
-          printf(BLUE" %s "RST WHITE "*>" RST ,cwd);
-
-
-          if(getline(&buf, &bufsize, stdin) == -1)
-          {
-            buf = NULL;
-            if(feof(stdin))
-              printf(RED"[EOF]"RST);
-            else
-              printf(RED"Getline failed"RST);
-
-            printf("\n");
-
-          }
-
-          return buf;
-  }
-
-int main(int argc, char** argv)
-{
-
-  char *line;
-   //TASK: PRINT A BANNER
-    //DONT FORGET
-
-
-
-    while(line = read_line())
-    {
-          line = read_line();
-          printf("%s", line);
-
-       // getting tokens from
-//          pause();
-
-
-      }
-
+int main() {
+    char *line;
+    while ((line = read_line())) {
+        char **args = line_splitting(line);
+        
+        // Uncomment for debugging
+        /*
+        for (int i = 0; args[i]; i++) {
+            printf("[%d]: %s\n", i, args[i]);
+        }
+        */
+        
+        cmd_exec(args);
+        free(line);
+        free(args);
+    }
     return EXIT_SUCCESS;
 }
